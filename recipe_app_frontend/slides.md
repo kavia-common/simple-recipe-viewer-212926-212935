@@ -21,7 +21,8 @@ css: |
     <h2 class="text-hero">Browse and view delicious recipes</h2>
     <p class="subtitle text-md">Clean. Modern. Smooth transitions.</p>
     <div class="hero-ctas mt-2">
-      <a href="#/2"><button class="btn-primary">Open Recipe Browser</button></a>
+      <!-- Route to the slide id instead of numeric index to be robust -->
+      <a href="#/recipe-browser"><button class="btn-primary">Open Recipe Browser</button></a>
       <a href="https://sli.dev" target="_blank"><button class="btn-secondary">About Slidev</button></a>
     </div>
   </div>
@@ -30,20 +31,25 @@ css: |
 ---
 
 # Recipe Browser
+id: recipe-browser
+---
 
 <RecipeApp />
 
 ---
 
 # Open Recipe Components Demo
+id: recipe-components
+---
 
 <!-- Define a single inline orchestrator component and render it -->
 <script setup>
-import { defineComponent, h } from 'vue'
+import { defineComponent, h, reactive } from 'vue'
 import OpenRecipeList from './components/OpenRecipeList.vue'
 import OpenRecipeDetails from './components/OpenRecipeDetails.vue'
 
-const _state = { selectedId: null, items: [] }
+// Use reactive to ensure state updates trigger re-render in Slidev context.
+const state = reactive({ selectedId: null, items: [] as any[] })
 
 const DemoOpenRecipePage = defineComponent({
   name: 'DemoOpenRecipePage',
@@ -53,15 +59,15 @@ const DemoOpenRecipePage = defineComponent({
         h('div', { class: 'left' }, [
           h('div', { class: 'eyebrow' }, 'List'),
           h(OpenRecipeList, {
-            onSelect: (id) => { _state.selectedId = id },
-            onLoaded: (items) => { _state.items = items },
+            onSelect: (id: string) => { state.selectedId = id },
+            onLoaded: (items: any[]) => { state.items = items },
           }),
         ]),
         h('div', { class: 'right' }, [
           h('div', { class: 'eyebrow' }, 'Details'),
           h(OpenRecipeDetails, {
-            id: _state.selectedId,
-            recipe: _state.items.find?.(r => r.id === _state.selectedId),
+            id: state.selectedId as any,
+            recipe: state.items.find?.((r: any) => r.id === state.selectedId),
           }),
         ]),
       ])
