@@ -6,8 +6,12 @@ import RecipeDetail from './RecipeDetail.vue';
 
 const recipes = ref<Recipe[]>([]);
 const loading = ref(true);
+const loadError = ref<string | null>(null);
 const selectedId = ref<string | null>(null);
 const selectedRecipe = ref<Recipe | undefined>(undefined);
+
+// Read env once in script to avoid template env access quirks in Slidev/Vite
+const apiPresent = Boolean(import.meta.env.VITE_API_BASE);
 
 // PUBLIC_INTERFACE
 function openRecipe(id: string) {
@@ -26,8 +30,14 @@ function closeRecipe() {
 }
 
 onMounted(async () => {
-  recipes.value = await fetchRecipes();
-  loading.value = false;
+  try {
+    recipes.value = await fetchRecipes();
+  } catch (e) {
+    console.warn('Failed to load recipes', e);
+    loadError.value = 'Failed to load recipes. Please try again.';
+  } finally {
+    loading.value = false;
+  }
 });
 </script>
 
@@ -39,7 +49,7 @@ onMounted(async () => {
         <span class="brand-title">Simple Recipe Viewer</span>
       </div>
       <div class="actions">
-        <span class="env-pill" v-if="import.meta.env.VITE_API_BASE">API</span>
+        <span class="env-pill" v-if="apiPresent">API</span>
       </div>
     </header>
 
@@ -50,9 +60,10 @@ onMounted(async () => {
       </div>
 
       <div v-if="loading" class="loading">Loading recipes…</div>
+      <div v-else-if="loadError" class="error">{{ loadError }}</div>
 
       <transition name="fade">
-        <div v-if="!loading" class="grid">
+        <div v-if="!loading && !loadError" class="grid">
           <RecipeCard v-for="r in recipes" :key="r.id" :recipe="r" @view="openRecipe" />
         </div>
       </transition>
@@ -128,6 +139,13 @@ onMounted(async () => {
 }
 .loading {
   color: var(--theme-text-secondary);
+}
+.error {
+  color: var(--theme-danger);
+  background: color-mix(in oklab, var(--theme-danger) 8%, #000);
+  border: 1px solid color-mix(in oklab, var(--theme-danger) 22%, #000);
+  padding: 10px 12px;
+  border-radius: 10px;
 }
 
 .fade-enter-active,
