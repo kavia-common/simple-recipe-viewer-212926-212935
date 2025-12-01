@@ -1,5 +1,5 @@
-<script lang="ts">
-import { defineComponent, ref, onMounted, computed } from 'vue';
+<script setup lang="ts">
+import { ref, onMounted, computed } from 'vue';
 import RecipeCard from './RecipeCard.vue';
 import RecipeDetail from './RecipeDetail.vue';
 import { fetchRecipes, fetchRecipeById, type Recipe } from '../services/recipes';
@@ -12,75 +12,56 @@ import { fetchRecipes, fetchRecipeById, type Recipe } from '../services/recipes'
  * - Loading and error states
  * It uses services/recipes which automatically falls back to services/mockData when VITE_API_BASE is unset or failing.
  */
-export default defineComponent({
-  name: 'RecipeApp',
-  components: { RecipeCard, RecipeDetail },
-  setup() {
-    const recipes = ref<Recipe[]>([]);
-    const loading = ref(true);
-    const loadError = ref<string | null>(null);
-    const selectedId = ref<string | null>(null);
-    const selectedRecipe = ref<Recipe | undefined>(undefined);
 
-    // compute a boolean hint for API presence without exposing env in the template
-    const apiHint = computed(() => {
-      try {
-        // Access env only here in script. If undefined, treat as no-API.
-        // Slidev sometimes evaluates templates in markdown rendering, so avoid template env references.
-        // eslint-disable-next-line no-undef
-        return Boolean(import.meta.env?.VITE_API_BASE);
-      } catch {
-        return false;
-      }
+const recipes = ref<Recipe[]>([]);
+const loading = ref(true);
+const loadError = ref<string | null>(null);
+const selectedId = ref<string | null>(null);
+const selectedRecipe = ref<Recipe | undefined>(undefined);
+
+// compute a boolean hint for API presence without exposing env in the template
+const apiHint = computed(() => {
+  try {
+    return Boolean(import.meta.env?.VITE_API_BASE);
+  } catch {
+    return false;
+  }
+});
+
+// PUBLIC_INTERFACE
+function openRecipe(id: string) {
+  /** Open a recipe by id, loading from service if needed and showing the modal. */
+  selectedId.value = id;
+  // Robust load with try/catch, but keep UI responsive even if it fails.
+  fetchRecipeById(id)
+    .then((r) => {
+      selectedRecipe.value = r;
+    })
+    .catch(() => {
+      // In worst-case, show a minimal placeholder if details fail.
+      const fallback = recipes.value.find((r) => r.id === id);
+      selectedRecipe.value = fallback;
     });
+}
 
-    // PUBLIC_INTERFACE
-    function openRecipe(id: string) {
-      /** Open a recipe by id, loading from service if needed and showing the modal. */
-      selectedId.value = id;
-      // Robust load with try/catch, but keep UI responsive even if it fails.
-      fetchRecipeById(id)
-        .then(r => {
-          selectedRecipe.value = r;
-        })
-        .catch(() => {
-          // In worst-case, show a minimal placeholder if details fail.
-          const fallback = recipes.value.find(r => r.id === id);
-          selectedRecipe.value = fallback;
-        });
-    }
+// PUBLIC_INTERFACE
+function closeRecipe() {
+  /** Close the detail modal. */
+  selectedId.value = null;
+  selectedRecipe.value = undefined;
+}
 
-    // PUBLIC_INTERFACE
-    function closeRecipe() {
-      /** Close the detail modal. */
-      selectedId.value = null;
-      selectedRecipe.value = undefined;
-    }
-
-    onMounted(async () => {
-      try {
-        loading.value = true;
-        loadError.value = null;
-        recipes.value = await fetchRecipes();
-      } catch (e) {
-        console.warn('Failed to load recipes. Falling back to error UI.', e);
-        loadError.value = 'We could not load recipes right now. Please try again.';
-      } finally {
-        loading.value = false;
-      }
-    });
-
-    return {
-      recipes,
-      loading,
-      loadError,
-      selectedId,
-      selectedRecipe,
-      apiHint,
-      openRecipe,
-      closeRecipe,
-    };
-  },
+onMounted(async () => {
+  try {
+    loading.value = true;
+    loadError.value = null;
+    recipes.value = await fetchRecipes();
+  } catch (e) {
+    console.warn('Failed to load recipes. Falling back to error UI.', e);
+    loadError.value = 'We could not load recipes right now. Please try again.';
+  } finally {
+    loading.value = false;
+  }
 });
 </script>
 
